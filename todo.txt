@@ -1,0 +1,176 @@
+================================================================================
+                    DAD JOKES - PRE-PUBLICATION CHECKLIST
+================================================================================
+
+Last Updated: December 22, 2024
+
+================================================================================
+REQUIRED - Must complete before App Store/Play Store submission
+================================================================================
+
+[ ] REVENUECAT SETUP
+    - Create account at https://revenuecat.com
+    - Create new project for Dad Jokes
+    - Copy API key to .env as EXPO_PUBLIC_REVENUECAT_API_KEY
+    - See REVENUECAT_SETUP.md for detailed instructions
+
+[ ] APP STORE PRODUCTS (iOS)
+    - Log into App Store Connect
+    - Create auto-renewable subscription group
+    - Add products:
+      * Monthly subscription ($2.99/month)
+      * Yearly subscription ($19.99/year)
+    - Configure 7-day free trial on subscriptions
+    - Import products into RevenueCat
+
+[ ] GOOGLE PLAY PRODUCTS (Android)
+    - Log into Google Play Console
+    - Navigate to Monetize > Subscriptions
+    - Create matching subscription products with same IDs as iOS
+    - Configure free trial offers
+    - Import products into RevenueCat
+
+[ ] REVENUECAT CONFIGURATION
+    - Create entitlement: "dadjokes_pro"
+    - Attach all subscription products to the entitlement
+    - Create "default" Offering with Monthly/Yearly packages
+    - Design paywall using RevenueCat's visual Paywall Editor
+    - Attach paywall to default offering
+
+[ ] SUPABASE AUTH CONFIGURATION
+    - Log into Supabase dashboard (https://supabase.com/dashboard)
+    - Select project: J&H Tech | Build
+    - Go to Authentication > Providers
+    - Enable Email/Password authentication
+    - Configure email templates (confirmation, password reset)
+    - (Optional) Enable social logins (Google, Apple)
+
+[ ] UPDATE CONTACT EMAILS
+    - Replace placeholder emails in legal documents:
+      * app/settings/terms.tsx: support@dadjokes.app
+      * app/settings/privacy.tsx: privacy@dadjokes.app
+    - Set up actual email addresses or use your real contact info
+
+[ ] APP STORE ASSETS
+    - App icon: Already created (1024x1024)
+    - Screenshots (required sizes):
+      * iPhone 6.7" (1290 x 2796)
+      * iPhone 6.5" (1284 x 2778)
+      * iPhone 5.5" (1242 x 2208)
+      * iPad Pro 12.9" (2048 x 2732)
+    - App preview video (optional but recommended)
+    - App description (short and full)
+    - Keywords for App Store optimization
+    - Privacy policy URL (host the policy online)
+
+[ ] GOOGLE PLAY ASSETS
+    - Feature graphic (1024 x 500)
+    - Screenshots for phone and tablet
+    - Short description (80 chars max)
+    - Full description (4000 chars max)
+
+[ ] EAS BUILD CONFIGURATION
+    - Run: npx eas build:configure
+    - Update eas.json with your Apple/Google credentials
+    - Configure code signing for iOS
+    - Configure keystore for Android
+
+================================================================================
+RECOMMENDED - Important for quality release
+================================================================================
+
+[ ] TESTING
+    - Test all joke browsing functionality
+    - Test favorites adding/removing
+    - Test sharing functionality
+    - Test subscription flow with sandbox accounts
+    - Test login/signup/password reset flows
+    - Test daily streak tracking
+    - Test push notifications on real devices
+    - Test offline functionality
+    - Test data sync when coming back online
+
+[ ] SANDBOX TESTING ACCOUNTS
+    - iOS: Add sandbox testers in App Store Connect > Users > Sandbox
+    - Android: Add license testers in Play Console > Setup > License testing
+    - Never use real payment methods during testing
+
+[ ] PUSH NOTIFICATION CERTIFICATES
+    - iOS: Create APNs key in Apple Developer portal
+    - Android: Set up Firebase Cloud Messaging (FCM)
+    - Configure in Expo/EAS dashboard
+
+[ ] APP PRIVACY DETAILS (App Store)
+    - Complete App Privacy questionnaire in App Store Connect
+    - Document all data collection practices
+    - Match with Privacy Policy content
+
+[ ] DATA SAFETY FORM (Google Play)
+    - Complete Data Safety form in Play Console
+    - Document all data collection and sharing practices
+
+================================================================================
+PRODUCTION DEPLOYMENT
+================================================================================
+
+[ ] MIGRATE TO PRODUCTION SUPABASE (after testing complete)
+    - Run migration script to copy schema to Production project
+    - Update .env with Production credentials:
+      * EXPO_PUBLIC_SUPABASE_URL=https://aweahqgyrthpdxrnzaoi.supabase.co
+      * EXPO_PUBLIC_SUPABASE_ANON_KEY=[production key]
+    - Verify RLS policies are working in Production
+
+[ ] BUILD FOR PRODUCTION
+    - iOS: npx eas build --platform ios --profile production
+    - Android: npx eas build --platform android --profile production
+
+[ ] SUBMIT TO STORES
+    - iOS: npx eas submit --platform ios
+    - Android: npx eas submit --platform android
+    - Or upload manually through App Store Connect / Play Console
+
+================================================================================
+POST-LAUNCH
+================================================================================
+
+[ ] MONITOR
+    - Set up RevenueCat webhooks for subscription events
+    - Monitor Supabase dashboard for errors
+    - Set up crash reporting (Sentry, Bugsnag, etc.)
+    - Monitor app reviews and respond promptly
+
+[ ] ANALYTICS (Optional)
+    - Integrate analytics service (Mixpanel, Amplitude, etc.)
+    - Track key user events and conversion funnels
+
+================================================================================
+CURRENT STATUS
+================================================================================
+
++ Core app functionality complete
++ Supabase backend configured (Build project)
++ Database schema with RLS policies
++ Push notification infrastructure
++ RevenueCat service code integrated
++ Privacy Policy and Terms of Service
++ Open Source Licenses page
++ App icons and splash screen
++ Favorites screen
++ Category filtering (Premium)
++ Daily streak tracking (Premium)
++ Social sharing functionality
+
+================================================================================
+NOTES
+================================================================================
+
+- The app currently points to the Supabase BUILD project for development
+- Switch to PRODUCTION credentials only for App Store builds
+- Free trial is configured for 7 days in the subscription store
+- Premium features gated:
+  * Category filtering
+  * Full joke library (150+ jokes)
+  * Daily streak tracking
+  * Custom collections
+
+================================================================================

@@ -1,0 +1,33 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="1024" height="1024" rx="230" fill="#1F2937"/>
+
+  <!-- Inner glow circle -->
+  <circle cx="512" cy="480" r="320" fill="#374151"/>
+
+  <!-- Laughing face emoji style -->
+  <!-- Main face circle -->
+  <circle cx="512" cy="480" r="280" fill="#14B8A6"/>
+
+  <!-- Left eye (closed laughing) -->
+  <path d="M380 420 Q420 380 460 420" stroke="#1F2937" stroke-width="28" stroke-linecap="round" fill="none"/>
+
+  <!-- Right eye (closed laughing) -->
+  <path d="M564 420 Q604 380 644 420" stroke="#1F2937" stroke-width="28" stroke-linecap="round" fill="none"/>
+
+  <!-- Big laughing mouth -->
+  <path d="M350 520 Q512 700 674 520" stroke="#1F2937" stroke-width="24" stroke-linecap="round" fill="#1F2937"/>
+
+  <!-- Teeth -->
+  <rect x="420" y="520" width="164" height="60" rx="8" fill="#FFFFFF"/>
+
+  <!-- Tear drops from laughing -->
+  <ellipse cx="340" cy="460" rx="20" ry="30" fill="#2DD4BF"/>
+  <ellipse cx="684" cy="460" rx="20" ry="30" fill="#2DD4BF"/>
+
+  <!-- Mustache (dad element) -->
+  <path d="M390 580 Q450 640 512 600 Q574 640 634 580" stroke="#0D9488" stroke-width="20" stroke-linecap="round" fill="none"/>
+
+  <!-- "DAD" text at bottom -->
+  <text x="512" y="920" font-family="Arial Black, sans-serif" font-size="160" font-weight="900" fill="#14B8A6" text-anchor="middle">DAD</text>
+</svg>

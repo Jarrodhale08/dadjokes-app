@@ -1,0 +1,66 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "esnext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "exactOptionalPropertyTypes": true,
+    "noUncheckedIndexedAccess": true,
+    "forceConsistentCasingInFileNames": true,
+    "useDefineForClassFields": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "./*"
+      ],
+      "@components/*": [
+        "src/components/*"
+      ],
+      "@layouts/*": [
+        "src/layouts/*"
+      ],
+      "@stores/*": [
+        "src/stores/*"
+      ],
+      "@utils/*": [
+        "src/utils/*"
+      ],
+      "@assets/*": [
+        "assets/*"
+      ],
+      "@api/*": [
+        "src/api/*"
+      ],
+      "@models/*": [
+        "src/models/*"
+      ],
+      "@hooks/*": [
+        "src/hooks/*"
+      ],
+      "@adapters/*": [
+        "src/adapters/*"
+      ]
+    },
+    "types": [
+      "expo-router"
+    ]
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "expo-env.d.ts",
+    ".expo/types/**/*.ts",
+    "nativewind-env.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "babel.config.js"
+  ]
+}

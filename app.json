@@ -1,0 +1,47 @@
+{
+  "expo": {
+    "newArchEnabled": true,
+    "name": "Dad Jokes",
+    "slug": "dadjokes",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "dadjokes",
+    "userInterfaceStyle": "dark",
+    "runtimeVersion": "1.0.0",
+    "splash": {
+      "image": "./assets/images/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#111827"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#1F2937"
+      }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "67c2667d-6254-41da-a5a7-ac8aec93cfd4"
+      }
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

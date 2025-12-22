@@ -1,0 +1,26 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Transparent background for adaptive icon -->
+  <rect width="1024" height="1024" fill="#1F2937"/>
+
+  <!-- Laughing face centered -->
+  <circle cx="512" cy="512" r="320" fill="#14B8A6"/>
+
+  <!-- Left eye (closed laughing) -->
+  <path d="M380 450 Q420 410 460 450" stroke="#1F2937" stroke-width="28" stroke-linecap="round" fill="none"/>
+
+  <!-- Right eye (closed laughing) -->
+  <path d="M564 450 Q604 410 644 450" stroke="#1F2937" stroke-width="28" stroke-linecap="round" fill="none"/>
+
+  <!-- Big laughing mouth -->
+  <path d="M350 550 Q512 730 674 550" stroke="#1F2937" stroke-width="24" stroke-linecap="round" fill="#1F2937"/>
+
+  <!-- Teeth -->
+  <rect x="420" y="550" width="164" height="60" rx="8" fill="#FFFFFF"/>
+
+  <!-- Tear drops from laughing -->
+  <ellipse cx="340" cy="490" rx="20" ry="30" fill="#2DD4BF"/>
+  <ellipse cx="684" cy="490" rx="20" ry="30" fill="#2DD4BF"/>
+
+  <!-- Mustache (dad element) -->
+  <path d="M390 620 Q450 680 512 640 Q574 680 634 620" stroke="#0D9488" stroke-width="20" stroke-linecap="round" fill="none"/>
+</svg>
