@@ -18,7 +18,11 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.jarrodhale08.dadjokes",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -27,8 +31,9 @@
       }
     },
     "extra": {
+      "router": {},
       "eas": {
-        "projectId": "67c2667d-6254-41da-a5a7-ac8aec93cfd4"
+        "projectId": "6d6f0e2b-9311-4513-b4bb-38feae527073"
       }
     },
     "web": {
@@ -42,6 +47,7 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "owner": "jarrodhale08"
   }
 }

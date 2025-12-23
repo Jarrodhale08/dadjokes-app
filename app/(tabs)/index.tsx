@@ -232,30 +232,6 @@ export default function Screen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>Dad Jokes</Text>
-          <Text style={styles.headerSubtitle}>Your daily dose of laughter</Text>
-        </View>
-        <View style={styles.headerActions}>
-          {premium && (
-            <TouchableOpacity
-              style={styles.headerButton}
-              onPress={() => router.push('/library' as any)}
-              accessibilityLabel="Open joke library"
-            >
-              <Ionicons name="library" size={24} color={colors.text.inverse} />
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity
-            style={styles.headerButton}
-            onPress={() => router.push('/subscription')}
-            accessibilityLabel={premium ? 'Manage subscription' : 'Go premium'}
-          >
-            <Ionicons name={premium ? 'star' : 'star-outline'} size={24} color={colors.text.inverse} />
-          </TouchableOpacity>
-        </View>
-      </View>
 
       {/* Category Filter */}
       <ScrollView
@@ -448,41 +424,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background.DEFAULT,
-  },
-  header: {
-    backgroundColor: colors.primary.DEFAULT,
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: colors.text.inverse,
-    marginBottom: 2,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: colors.text.inverse,
-    opacity: 0.8,
-  },
-  headerActions: {
-    flexDirection: 'row',
-  },
-  headerButton: {
-    padding: 8,
-    marginLeft: 8,
-    minWidth: 44,
-    minHeight: 44,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   categoryScrollView: {
     backgroundColor: colors.background.secondary,

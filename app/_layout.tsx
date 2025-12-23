@@ -1,11 +1,11 @@
-import { DrawerContentScrollView } from "@react-navigation/drawer";
-import { Ionicons } from "@expo/vector-icons";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { Link, useSegments } from "expo-router";
-import { Drawer } from "expo-router/drawer";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import React, { useEffect, useState } from 'react';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { Stack, useRouter, useSegments } from 'expo-router';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { colors } from '../src/theme/colors';
 
-import "../global.css";
+import '../global.css';
 
 const client = new QueryClient({
   defaultOptions: {
@@ -14,7 +14,7 @@ const client = new QueryClient({
     },
     mutations: {
       onError: (error) => {
-        if ("message" in error) {
+        if ('message' in error) {
           console.error(error.message);
         }
       },
@@ -22,117 +22,76 @@ const client = new QueryClient({
   },
 });
 
-interface DrawerLinkProps {
-  href: string;
-  label: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  onPress: () => void;
-}
+const ONBOARDING_KEY = '@dadjokes_onboarding_complete';
 
-const DrawerLink = ({ href, label, icon, onPress }: DrawerLinkProps) => (
-  <Link href={href as any} onPress={onPress} asChild>
-    <TouchableOpacity style={styles.drawerItem}>
-      <Ionicons name={icon} size={24} color="#EF4444" style={styles.drawerIcon} />
-      <Text style={styles.drawerLabel}>{label}</Text>
-    </TouchableOpacity>
-  </Link>
-);
-
-const RootLayout = () => {
+function RootLayoutNav() {
+  const router = useRouter();
   const segments = useSegments();
-  const currentScreen = segments[segments.length - 1] || "Dashboard";
-  const drawerTitle = currentScreen === "(tabs)" ? "Dashboard" :
-    currentScreen.charAt(0).toUpperCase() + currentScreen.slice(1);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
+
+  useEffect(() => {
+    checkOnboardingStatus();
+  }, []);
+
+  const checkOnboardingStatus = async () => {
+    try {
+      const value = await AsyncStorage.getItem(ONBOARDING_KEY);
+      setHasCompletedOnboarding(value === 'true');
+    } catch (error) {
+      console.warn('Error checking onboarding status:', error);
+      setHasCompletedOnboarding(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isLoading) return;
+
+    const inOnboarding = segments[0] === 'onboarding';
+
+    if (!hasCompletedOnboarding && !inOnboarding) {
+      router.replace('/onboarding');
+    }
+  }, [isLoading, hasCompletedOnboarding, segments]);
+
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary.DEFAULT} />
+      </View>
+    );
+  }
 
   return (
-    <QueryClientProvider client={client}>
-      <Drawer
-        drawerContent={(props) => {
-          return (
-            <DrawerContentScrollView {...props} style={styles.drawerContent}>
-              <View style={styles.drawerHeader}>
-                <Ionicons name="apps" size={40} color="#EF4444" />
-                <Text style={styles.appTitle}>DadJokes</Text>
-              </View>
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        contentStyle: { backgroundColor: colors.background.DEFAULT },
+      }}
+    >
+      <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="subscription" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="library" />
+    </Stack>
+  );
+}
 
-              <View style={styles.drawerItems}>
-                <DrawerLink
-                  href="/(tabs)/index"
-                  label="Home"
-                  icon="home"
-                  onPress={() => props.navigation.closeDrawer()}
-                />
-                <DrawerLink
-                  href="/(tabs)/profile"
-                  label="Profile"
-                  icon="person"
-                  onPress={() => props.navigation.closeDrawer()}
-                />
-                <DrawerLink
-                  href="/(tabs)/settings"
-                  label="Settings"
-                  icon="settings"
-                  onPress={() => props.navigation.closeDrawer()}
-                />
-              </View>
-            </DrawerContentScrollView>
-          );
-        }}
-        screenOptions={{
-          title: drawerTitle,
-          headerStyle: {
-            backgroundColor: '#FFFFFF',
-          },
-          headerTintColor: '#111827',
-          headerTitleStyle: {
-            fontWeight: '600',
-          },
-          drawerPosition: 'right',
-          headerLeft: () => null,
-        }}
-      />
+export default function RootLayout() {
+  return (
+    <QueryClientProvider client={client}>
+      <RootLayoutNav />
     </QueryClientProvider>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  drawerContent: {
+  loadingContainer: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  drawerHeader: {
-    padding: 20,
-    paddingTop: 40,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
-  },
-  appTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#111827',
-    marginTop: 8,
-  },
-  drawerItems: {
-    paddingHorizontal: 8,
-  },
-  drawerItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    marginBottom: 4,
-  },
-  drawerIcon: {
-    marginRight: 16,
-  },
-  drawerLabel: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#374151',
+    backgroundColor: colors.background.DEFAULT,
   },
 });
-
-export default RootLayout;
