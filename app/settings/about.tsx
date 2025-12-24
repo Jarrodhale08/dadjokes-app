@@ -18,9 +18,6 @@ export default function AboutScreen() {
     router.push('/settings/terms');
   };
 
-  const handleLicenses = () => {
-    router.push('/settings/licenses');
-  };
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -65,13 +62,6 @@ export default function AboutScreen() {
             <Ionicons name="chevron-forward" size={20} color={colors.text.muted} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.option} onPress={handleLicenses}>
-            <Ionicons name="code-outline" size={24} color={colors.primary.DEFAULT} />
-            <View style={styles.optionContent}>
-              <Text style={styles.optionTitle}>Open Source Licenses</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.text.muted} />
-          </TouchableOpacity>
         </View>
 
         <View style={styles.section}>

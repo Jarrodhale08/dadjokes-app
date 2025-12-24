@@ -1,0 +1,8 @@
+Welcome to DadJokes! This initial release includes:
+
+- Full-featured app experience
+- Cloud sync across all your devices
+- 7-day free trial of premium features
+- Beautiful, intuitive interface
+
+We'd love to hear your feedback!

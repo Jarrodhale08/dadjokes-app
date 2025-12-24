@@ -184,7 +184,16 @@ export default function TermsOfServiceScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>14. Contact Us</Text>
+          <Text style={styles.sectionTitle}>14. Open Source Software</Text>
+          <Text style={styles.sectionText}>
+            This App uses open source software licensed under the MIT License, including
+            React Native, Expo, Supabase, Zustand, and other libraries. Full license terms
+            are available at opensource.org/licenses/MIT.
+          </Text>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>15. Contact Us</Text>
           <Text style={styles.sectionText}>
             If you have any questions about these Terms of Service, please contact us at:
           </Text>
