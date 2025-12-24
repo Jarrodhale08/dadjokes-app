@@ -4,6 +4,8 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors } from '../src/theme/colors';
+import { useRevenueCatInit } from '../src/hooks/useRevenueCatInit';
+import { useNotificationInit } from '../src/hooks/useNotificationInit';
 
 import '../global.css';
 
@@ -29,6 +31,12 @@ function RootLayoutNav() {
   const segments = useSegments();
   const [isLoading, setIsLoading] = useState(true);
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
+
+  // Initialize RevenueCat for subscriptions
+  useRevenueCatInit();
+
+  // Initialize notifications
+  useNotificationInit();
 
   useEffect(() => {
     checkOnboardingStatus();
@@ -74,6 +82,7 @@ function RootLayoutNav() {
       <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="subscription" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="customer-center" options={{ presentation: 'modal' }} />
       <Stack.Screen name="library" />
     </Stack>
   );

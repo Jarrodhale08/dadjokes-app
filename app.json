@@ -21,10 +21,12 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.jarrodhale08.dadjokes",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "UIBackgroundModes": ["remote-notification"]
       }
     },
     "android": {
+      "package": "com.jarrodhale08.dadjokes",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#1F2937"
@@ -43,7 +45,14 @@
     },
     "plugins": [
       "expo-router",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#F59E0B"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

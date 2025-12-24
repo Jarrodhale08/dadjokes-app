@@ -16,6 +16,7 @@ import {
   resetPassword,
   getCurrentUser,
   onAuthStateChange,
+  initializeAppContext,
 } from '../services/supabase';
 import {
   fetchAllUserData,
@@ -77,6 +78,9 @@ export const useAuthStore = create<AuthState>()(
 
           const profile = await fetchProfile();
           const authUser = mapSupabaseUser(user, profile);
+
+          // Initialize app context for multi-tenant isolation
+          await initializeAppContext();
 
           // Fetch user data from cloud
           const cloudData = await fetchAllUserData();
@@ -167,6 +171,9 @@ export const useAuthStore = create<AuthState>()(
           }
 
           const authUser = mapSupabaseUser(user, { display_name: displayName });
+
+          // Initialize app context for multi-tenant isolation
+          await initializeAppContext();
 
           // Sync any local data to cloud for new user
           const appStore = useAppStore.getState();
