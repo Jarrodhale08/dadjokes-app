@@ -1,12 +1,13 @@
 /**
  * Subscription Store
- * Manages premium subscription status and features with 7-day free trial
+ * Manages premium subscription status synced with RevenueCat
  */
 
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as SecureStore from 'expo-secure-store';
+import { CustomerInfo } from 'react-native-purchases';
+import revenueCatService, { ENTITLEMENT_ID } from '../services/revenueCat.service';
 
 export type SubscriptionPlan = 'free' | 'trial' | 'monthly' | 'yearly';
 
@@ -17,12 +18,14 @@ export interface SubscriptionInfo {
   autoRenew: boolean;
   trialUsed: boolean;
   trialStartedAt: string | null;
+  productIdentifier: string | null;
 }
 
 export interface SubscriptionState {
   subscription: SubscriptionInfo;
   isLoading: boolean;
   error: string | null;
+  isInitialized: boolean;
 
   // Computed
   isPremium: () => boolean;
@@ -33,35 +36,15 @@ export interface SubscriptionState {
   trialDaysRemaining: () => number | null;
 
   // Actions
-  startTrial: () => Promise<void>;
-  subscribe: (plan: 'monthly' | 'yearly') => Promise<void>;
-  cancelSubscription: () => Promise<void>;
+  initializeFromRevenueCat: () => Promise<void>;
+  updateFromCustomerInfo: (customerInfo: CustomerInfo) => void;
+  purchasePackage: (packageIdentifier: string) => Promise<boolean>;
+  presentPaywall: () => Promise<boolean>;
   restorePurchase: () => Promise<boolean>;
-  checkSubscriptionStatus: () => Promise<void>;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   reset: () => void;
 }
-
-const SUBSCRIPTION_KEY = 'subscription_info';
-
-const saveSubscriptionSecurely = async (info: SubscriptionInfo) => {
-  try {
-    await SecureStore.setItemAsync(SUBSCRIPTION_KEY, JSON.stringify(info));
-  } catch (error) {
-    console.warn('Failed to save subscription securely:', error);
-  }
-};
-
-const loadSubscriptionSecurely = async (): Promise<SubscriptionInfo | null> => {
-  try {
-    const data = await SecureStore.getItemAsync(SUBSCRIPTION_KEY);
-    return data ? JSON.parse(data) : null;
-  } catch (error) {
-    console.warn('Failed to load subscription:', error);
-    return null;
-  }
-};
 
 const TRIAL_DAYS = 7;
 
@@ -72,6 +55,7 @@ const initialSubscription: SubscriptionInfo = {
   autoRenew: false,
   trialUsed: false,
   trialStartedAt: null,
+  productIdentifier: null,
 };
 
 export const useSubscriptionStore = create<SubscriptionState>()(
@@ -80,11 +64,12 @@ export const useSubscriptionStore = create<SubscriptionState>()(
       subscription: initialSubscription,
       isLoading: false,
       error: null,
+      isInitialized: false,
 
       isPremium: () => {
         const { subscription } = get();
         if (subscription.plan === 'free') return false;
-        if (!subscription.expiresAt) return false;
+        if (!subscription.expiresAt) return subscription.plan !== 'free';
         return new Date(subscription.expiresAt) > new Date();
       },
 
@@ -126,105 +111,134 @@ export const useSubscriptionStore = create<SubscriptionState>()(
         return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
       },
 
-      startTrial: async () => {
+      initializeFromRevenueCat: async () => {
         set({ isLoading: true, error: null });
 
         try {
-          const { subscription } = get();
-          if (subscription.trialUsed) {
-            throw new Error('Trial already used');
+          const customerInfo = await revenueCatService.getCustomerInfo();
+
+          if (customerInfo) {
+            get().updateFromCustomerInfo(customerInfo);
           }
 
-          await new Promise(resolve => setTimeout(resolve, 500));
-
-          const now = new Date();
-          const expiresAt = new Date(now);
-          expiresAt.setDate(expiresAt.getDate() + TRIAL_DAYS);
-
-          const newSubscription: SubscriptionInfo = {
-            plan: 'trial',
-            purchasedAt: null,
-            trialStartedAt: now.toISOString(),
-            expiresAt: expiresAt.toISOString(),
-            autoRenew: false,
-            trialUsed: true,
-          };
-
-          await saveSubscriptionSecurely(newSubscription);
-          set({ subscription: newSubscription, isLoading: false });
+          set({ isLoading: false, isInitialized: true });
         } catch (error) {
+          console.error('Failed to initialize subscription:', error);
           set({
-            error: error instanceof Error ? error.message : 'Failed to start trial',
+            error: error instanceof Error ? error.message : 'Failed to initialize',
             isLoading: false,
+            isInitialized: true,
           });
-          throw error;
         }
       },
 
-      subscribe: async (plan: 'monthly' | 'yearly') => {
+      updateFromCustomerInfo: (customerInfo: CustomerInfo) => {
+        const entitlement = customerInfo.entitlements.active[ENTITLEMENT_ID];
+        const trialUsed = customerInfo.allPurchasedProductIdentifiers.length > 0;
+
+        if (entitlement) {
+          // User has active entitlement
+          const productIdentifier = entitlement.productIdentifier;
+          const expirationDate = entitlement.expirationDate;
+          const purchaseDate = entitlement.latestPurchaseDate;
+          const willRenew = entitlement.willRenew;
+
+          // Determine plan type from product identifier
+          let plan: SubscriptionPlan = 'monthly';
+          if (productIdentifier.includes('annual') || productIdentifier.includes('yearly')) {
+            plan = 'yearly';
+          }
+
+          // Check if user is in trial period
+          // Trial is detected when user has active entitlement but hasn't been charged yet
+          const isInTrialPeriod = entitlement.periodType === 'TRIAL';
+
+          if (isInTrialPeriod) {
+            plan = 'trial';
+          }
+
+          set({
+            subscription: {
+              plan,
+              expiresAt: expirationDate || null,
+              purchasedAt: purchaseDate || null,
+              autoRenew: willRenew,
+              trialUsed: true,
+              trialStartedAt: isInTrialPeriod ? purchaseDate : null,
+              productIdentifier,
+            },
+          });
+        } else {
+          // User doesn't have active entitlement
+          set({
+            subscription: {
+              plan: 'free',
+              expiresAt: null,
+              purchasedAt: null,
+              autoRenew: false,
+              trialUsed,
+              trialStartedAt: null,
+              productIdentifier: null,
+            },
+          });
+        }
+      },
+
+      purchasePackage: async (packageIdentifier: string) => {
         set({ isLoading: true, error: null });
 
         try {
-          // In a real app, this would integrate with:
-          // - Apple StoreKit / In-App Purchases
-          // - Google Play Billing
-          // - RevenueCat or similar service
+          const packages = await revenueCatService.getSubscriptionPackages();
+          const pkg = packages.find((p) => p.identifier === packageIdentifier);
 
-          // For demo purposes, we simulate a successful purchase
-          await new Promise(resolve => setTimeout(resolve, 1500));
-
-          const now = new Date();
-          const expiresAt = new Date(now);
-
-          if (plan === 'monthly') {
-            expiresAt.setMonth(expiresAt.getMonth() + 1);
-          } else {
-            expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+          if (!pkg) {
+            throw new Error('Package not found');
           }
 
-          const { subscription: currentSub } = get();
-          const newSubscription: SubscriptionInfo = {
-            plan,
-            purchasedAt: now.toISOString(),
-            expiresAt: expiresAt.toISOString(),
-            autoRenew: true,
-            trialUsed: currentSub.trialUsed,
-            trialStartedAt: currentSub.trialStartedAt,
-          };
+          const result = await revenueCatService.purchasePackage(pkg.package);
 
-          await saveSubscriptionSecurely(newSubscription);
-          set({ subscription: newSubscription, isLoading: false });
+          if (result.userCancelled) {
+            set({ isLoading: false });
+            return false;
+          }
+
+          if (result.success && result.customerInfo) {
+            get().updateFromCustomerInfo(result.customerInfo);
+            set({ isLoading: false });
+            return true;
+          }
+
+          throw new Error(result.error || 'Purchase failed');
         } catch (error) {
           set({
             error: error instanceof Error ? error.message : 'Purchase failed',
             isLoading: false,
           });
-          throw error;
+          return false;
         }
       },
 
-      cancelSubscription: async () => {
+      presentPaywall: async () => {
         set({ isLoading: true, error: null });
 
         try {
-          await new Promise(resolve => setTimeout(resolve, 500));
+          const result = await revenueCatService.presentPaywall();
 
-          const { subscription } = get();
-          const updatedSubscription: SubscriptionInfo = {
-            ...subscription,
-            autoRenew: false,
-            trialUsed: subscription.trialUsed,
-            trialStartedAt: subscription.trialStartedAt,
-          };
+          if (result.customerInfo) {
+            get().updateFromCustomerInfo(result.customerInfo);
+          }
 
-          await saveSubscriptionSecurely(updatedSubscription);
-          set({ subscription: updatedSubscription, isLoading: false });
+          set({ isLoading: false });
+
+          // Return true if user made a purchase or restored
+          const { isPremium } = get();
+          return isPremium();
         } catch (error) {
           set({
-            error: error instanceof Error ? error.message : 'Cancellation failed',
+            error: error instanceof Error ? error.message : 'Failed to show paywall',
             isLoading: false,
           });
-          throw error;
+          return false;
         }
       },
 
@@ -232,21 +246,14 @@ export const useSubscriptionStore = create<SubscriptionState>()(
         set({ isLoading: true, error: null });
 
         try {
-          // In a real app, this would verify purchases with the app store
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          const result = await revenueCatService.restorePurchases();
 
-          const savedSubscription = await loadSubscriptionSecurely();
-
-          if (savedSubscription && savedSubscription.plan !== 'free') {
-            // Check if still valid
-            if (savedSubscription.expiresAt && new Date(savedSubscription.expiresAt) > new Date()) {
-              set({ subscription: savedSubscription, isLoading: false });
-              return true;
-            }
+          if (result.customerInfo) {
+            get().updateFromCustomerInfo(result.customerInfo);
           }
 
           set({ isLoading: false });
-          return false;
+          return result.success;
         } catch (error) {
           set({
             error: error instanceof Error ? error.message : 'Restore failed',
@@ -256,44 +263,29 @@ export const useSubscriptionStore = create<SubscriptionState>()(
         }
       },
 
-      checkSubscriptionStatus: async () => {
-        try {
-          const savedSubscription = await loadSubscriptionSecurely();
-          if (savedSubscription) {
-            set({ subscription: savedSubscription });
-          }
-        } catch (error) {
-          console.warn('Failed to check subscription status:', error);
-        }
-      },
-
       setLoading: (isLoading) => set({ isLoading }),
       setError: (error) => set({ error }),
 
       reset: () => {
-        set({ subscription: initialSubscription, isLoading: false, error: null });
-        SecureStore.deleteItemAsync(SUBSCRIPTION_KEY).catch(console.warn);
+        set({
+          subscription: initialSubscription,
+          isLoading: false,
+          error: null,
+          isInitialized: false,
+        });
       },
     }),
     {
       name: 'dadjokes-subscription',
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({
-        // Only persist non-sensitive subscription metadata
-        // Actual subscription validation should happen server-side
-        subscription: {
-          plan: state.subscription.plan,
-          expiresAt: state.subscription.expiresAt,
-          autoRenew: state.subscription.autoRenew,
-          trialUsed: state.subscription.trialUsed,
-          trialStartedAt: state.subscription.trialStartedAt,
-        },
+        subscription: state.subscription,
       }),
     }
   )
 );
 
-// Subscription pricing (for display purposes)
+// Subscription pricing (for display purposes - actual prices come from RevenueCat)
 export const SUBSCRIPTION_PRICES = {
   monthly: {
     price: 2.99,

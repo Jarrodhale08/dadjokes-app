@@ -1,4 +1,11 @@
-import React, { useState, useEffect } from 'react';
+/**
+ * Customer Center Screen
+ * Subscription management using RevenueCat Customer Center
+ *
+ * Documentation: https://www.revenuecat.com/docs/tools/customer-center
+ */
+
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,17 +15,20 @@ import {
   ActivityIndicator,
   Alert,
   Linking,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import RevenueCatUI from 'react-native-purchases-ui';
 import { colors } from '../src/theme/colors';
 import { useSubscriptionStore } from '../src/stores/subscriptionStore';
-import { Platform } from 'react-native';
+import revenueCatService from '../src/services/revenueCat.service';
 
 export default function CustomerCenterScreen() {
   const router = useRouter();
   const [isRestoring, setIsRestoring] = useState(false);
+  const [customerCenterAvailable, setCustomerCenterAvailable] = useState(true);
 
   const {
     subscription,
@@ -26,12 +36,40 @@ export default function CustomerCenterScreen() {
     isInTrial,
     daysUntilExpiry,
     restorePurchase,
+    updateFromCustomerInfo,
     isLoading,
   } = useSubscriptionStore();
 
   const premium = isPremium();
   const inTrial = isInTrial();
   const daysRemaining = daysUntilExpiry();
+
+  // Try to present RevenueCat Customer Center
+  const handlePresentCustomerCenter = useCallback(async () => {
+    try {
+      await RevenueCatUI.presentCustomerCenter();
+
+      // Refresh customer info after customer center interaction
+      const customerInfo = await revenueCatService.getCustomerInfo();
+      if (customerInfo) {
+        updateFromCustomerInfo(customerInfo);
+      }
+    } catch (err) {
+      console.error('Customer Center error:', err);
+      setCustomerCenterAvailable(false);
+      // Fall back to manual management options
+    }
+  }, [updateFromCustomerInfo]);
+
+  // Show RevenueCat Customer Center on mount if available
+  useEffect(() => {
+    if (customerCenterAvailable && (premium || inTrial)) {
+      const timer = setTimeout(() => {
+        handlePresentCustomerCenter();
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [customerCenterAvailable, premium, inTrial, handlePresentCustomerCenter]);
 
   const handleRestorePurchases = async () => {
     setIsRestoring(true);
@@ -71,15 +109,18 @@ export default function CustomerCenterScreen() {
 
   const handleContactSupport = () => {
     const email = 'jarrod@jandhtechnology.com';
-    const subject = 'Subscription Support Request';
-    const body = `User ID: ${subscription.purchasedAt ? 'Premium' : 'Free'}
+    const subject = 'Dad Jokes Pro - Subscription Support';
+    const body = `
 Platform: ${Platform.OS}
 Subscription Plan: ${subscription.plan}
+Auto-Renew: ${subscription.autoRenew ? 'Yes' : 'No'}
 
 Please describe your issue:
 `;
 
-    Linking.openURL(`mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
+    Linking.openURL(
+      `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+    );
   };
 
   const getExpirationDate = () => {
@@ -148,7 +189,7 @@ Please describe your issue:
             <View style={[styles.statusBadge, styles.premiumBadge]}>
               <Ionicons name="checkmark-circle" size={20} color="#10B981" />
               <Text style={styles.premiumBadgeText}>
-                {inTrial ? 'FREE TRIAL ACTIVE' : 'PREMIUM ACTIVE'}
+                {inTrial ? 'FREE TRIAL ACTIVE' : 'DAD JOKES PRO'}
               </Text>
             </View>
           ) : (
@@ -172,7 +213,9 @@ Please describe your issue:
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>Status</Text>
                 <Text style={[styles.detailValue, styles.activeStatus]}>
-                  {subscription.autoRenew ? 'Active - Auto-renewing' : 'Active - Expires at end of period'}
+                  {subscription.autoRenew
+                    ? 'Active - Auto-renewing'
+                    : 'Active - Expires at end of period'}
                 </Text>
               </View>
 
@@ -204,7 +247,7 @@ Please describe your issue:
           {!premium && !inTrial && (
             <View style={styles.upgradePromptContainer}>
               <Text style={styles.upgradePromptText}>
-                Upgrade to Premium to unlock all features and support dad joke excellence!
+                Upgrade to Dad Jokes Pro to unlock all features and support dad joke excellence!
               </Text>
               <TouchableOpacity
                 style={styles.upgradeButton}
@@ -221,6 +264,19 @@ Please describe your issue:
         {/* Management Options */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Manage Subscription</Text>
+
+          {/* RevenueCat Customer Center Button */}
+          {customerCenterAvailable && (premium || inTrial) && (
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={handlePresentCustomerCenter}
+              accessibilityLabel="Open Customer Center"
+            >
+              <Ionicons name="settings" size={20} color={colors.text.primary} />
+              <Text style={styles.actionButtonText}>Customer Center</Text>
+              <Ionicons name="chevron-forward" size={20} color={colors.text.tertiary} />
+            </TouchableOpacity>
+          )}
 
           <TouchableOpacity
             style={styles.actionButton}
@@ -266,9 +322,10 @@ Please describe your issue:
         <View style={styles.infoCard}>
           <Ionicons name="information-circle" size={24} color={colors.primary.DEFAULT} />
           <Text style={styles.infoText}>
-            Subscriptions are managed through {Platform.OS === 'ios' ? 'Apple' : 'Google'}.
-            To cancel or modify your subscription, use the{' '}
-            {Platform.OS === 'ios' ? 'App Store' : 'Play Store'} subscription management.
+            Subscriptions are managed through{' '}
+            {Platform.OS === 'ios' ? 'Apple' : 'Google'}. To cancel or modify your
+            subscription, use the {Platform.OS === 'ios' ? 'App Store' : 'Play Store'}{' '}
+            subscription management.
           </Text>
         </View>
 
@@ -277,8 +334,26 @@ Please describe your issue:
           <View style={styles.trialInfoCard}>
             <Text style={styles.trialInfoTitle}>About Your Free Trial</Text>
             <Text style={styles.trialInfoText}>
-              Your free trial gives you full access to all premium features. When your trial ends,
-              you can subscribe to keep enjoying premium benefits, or continue with the free version.
+              Your free trial gives you full access to all premium features. When your
+              trial ends, you can subscribe to keep enjoying premium benefits, or continue
+              with the free version.
+            </Text>
+          </View>
+        )}
+
+        {/* Entitlement Info for debugging in dev */}
+        {__DEV__ && (
+          <View style={styles.debugCard}>
+            <Text style={styles.debugTitle}>Debug Info</Text>
+            <Text style={styles.debugText}>Plan: {subscription.plan}</Text>
+            <Text style={styles.debugText}>
+              Product: {subscription.productIdentifier || 'N/A'}
+            </Text>
+            <Text style={styles.debugText}>
+              Auto-Renew: {subscription.autoRenew ? 'Yes' : 'No'}
+            </Text>
+            <Text style={styles.debugText}>
+              Trial Used: {subscription.trialUsed ? 'Yes' : 'No'}
             </Text>
           </View>
         )}
@@ -473,5 +548,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#047857',
     lineHeight: 20,
+  },
+  debugCard: {
+    backgroundColor: '#FEF3C7',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: '#F59E0B',
+  },
+  debugTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#92400E',
+    marginBottom: 8,
+  },
+  debugText: {
+    fontSize: 12,
+    color: '#92400E',
+    marginBottom: 4,
   },
 });

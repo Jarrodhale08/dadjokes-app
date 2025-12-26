@@ -1,4 +1,11 @@
-import React, { useState } from 'react';
+/**
+ * Subscription Screen
+ * Displays RevenueCat Paywall UI or falls back to custom paywall
+ *
+ * Documentation: https://www.revenuecat.com/docs/tools/paywalls
+ */
+
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -12,12 +19,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import RevenueCatUI, { PAYWALL_RESULT } from 'react-native-purchases-ui';
 import {
   useSubscriptionStore,
   SUBSCRIPTION_PRICES,
   PREMIUM_FEATURES,
   FREE_TRIAL_DAYS,
 } from '../src/stores/subscriptionStore';
+import revenueCatService, { SubscriptionPackage } from '../src/services/revenueCat.service';
 import { TOTAL_JOKES, TOTAL_CATEGORIES } from '../src/data/jokeLibrary';
 
 type PlanType = 'monthly' | 'yearly';
@@ -25,6 +34,9 @@ type PlanType = 'monthly' | 'yearly';
 export default function SubscriptionScreen() {
   const router = useRouter();
   const [selectedPlan, setSelectedPlan] = useState<PlanType>('yearly');
+  const [packages, setPackages] = useState<SubscriptionPackage[]>([]);
+  const [isLoadingPackages, setIsLoadingPackages] = useState(true);
+  const [useNativePaywall, setUseNativePaywall] = useState(true);
 
   const {
     subscription,
@@ -35,10 +47,10 @@ export default function SubscriptionScreen() {
     daysUntilExpiry,
     isLoading,
     error,
-    startTrial,
-    subscribe,
+    presentPaywall,
+    purchasePackage,
     restorePurchase,
-    cancelSubscription,
+    updateFromCustomerInfo,
   } = useSubscriptionStore();
 
   const premium = isPremium();
@@ -46,29 +58,68 @@ export default function SubscriptionScreen() {
   const trialEligible = isTrialEligible();
   const trialDays = trialDaysRemaining();
 
-  const handleStartTrial = async () => {
+  // Load packages from RevenueCat
+  useEffect(() => {
+    const loadPackages = async () => {
+      try {
+        const pkgs = await revenueCatService.getSubscriptionPackages();
+        setPackages(pkgs);
+      } catch (err) {
+        console.error('Failed to load packages:', err);
+      } finally {
+        setIsLoadingPackages(false);
+      }
+    };
+
+    loadPackages();
+  }, []);
+
+  // Try to present native RevenueCat paywall
+  const handlePresentNativePaywall = useCallback(async () => {
     try {
-      await startTrial();
-      Alert.alert(
-        '🎉 Trial Started!',
-        `Enjoy ${FREE_TRIAL_DAYS} days of premium access to all features. No payment required!`,
-        [{ text: 'Start Exploring', onPress: () => router.back() }]
-      );
+      const result = await RevenueCatUI.presentPaywall();
+
+      // Update subscription state
+      const customerInfo = await revenueCatService.getCustomerInfo();
+      if (customerInfo) {
+        updateFromCustomerInfo(customerInfo);
+      }
+
+      if (result === PAYWALL_RESULT.PURCHASED || result === PAYWALL_RESULT.RESTORED) {
+        Alert.alert(
+          'Welcome to Premium!',
+          'You now have access to all premium features.',
+          [{ text: 'Start Exploring', onPress: () => router.back() }]
+        );
+      }
     } catch (err) {
-      Alert.alert('Error', 'Failed to start trial. Please try again.');
+      console.error('Native paywall error:', err);
+      // Fall back to custom paywall
+      setUseNativePaywall(false);
     }
-  };
+  }, [router, updateFromCustomerInfo]);
+
+  // Show native paywall on mount for non-premium users
+  useEffect(() => {
+    if (!premium && !inTrial && useNativePaywall && !isLoadingPackages) {
+      // Small delay to ensure screen is mounted
+      const timer = setTimeout(() => {
+        handlePresentNativePaywall();
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [premium, inTrial, useNativePaywall, isLoadingPackages, handlePresentNativePaywall]);
 
   const handleSubscribe = async () => {
-    try {
-      await subscribe(selectedPlan);
+    const packageId = selectedPlan === 'yearly' ? '$rc_annual' : '$rc_monthly';
+    const success = await purchasePackage(packageId);
+
+    if (success) {
       Alert.alert(
-        '🎉 Welcome to Premium!',
+        'Welcome to Premium!',
         'You now have access to the full joke library and all premium features.',
         [{ text: 'Start Exploring', onPress: () => router.back() }]
       );
-    } catch (err) {
-      Alert.alert('Purchase Failed', 'Please try again or contact support.');
     }
   };
 
@@ -77,27 +128,48 @@ export default function SubscriptionScreen() {
     if (restored) {
       Alert.alert('Restored!', 'Your subscription has been restored.');
     } else {
-      Alert.alert('No Purchase Found', 'We couldn\'t find any previous purchases to restore.');
+      Alert.alert(
+        'No Purchase Found',
+        "We couldn't find any previous purchases to restore."
+      );
     }
   };
 
-  const handleCancel = async () => {
-    Alert.alert(
-      'Cancel Subscription',
-      'Are you sure you want to cancel? You\'ll still have access until your current period ends.',
-      [
-        { text: 'Keep Subscription', style: 'cancel' },
-        {
-          text: 'Cancel',
-          style: 'destructive',
-          onPress: async () => {
-            await cancelSubscription();
-            Alert.alert('Cancelled', 'Your subscription will not renew.');
-          },
-        },
-      ]
-    );
+  const handleManageSubscription = () => {
+    router.push('/customer-center');
   };
+
+  // Get actual prices from packages if available
+  const getPrice = (planType: PlanType) => {
+    const pkg = packages.find((p) =>
+      planType === 'yearly'
+        ? p.identifier === '$rc_annual'
+        : p.identifier === '$rc_monthly'
+    );
+
+    if (pkg) {
+      return pkg.price;
+    }
+
+    // Fallback to static prices
+    return planType === 'yearly'
+      ? `$${SUBSCRIPTION_PRICES.yearly.price}`
+      : `$${SUBSCRIPTION_PRICES.monthly.price}`;
+  };
+
+  const getTrialInfo = () => {
+    const yearlyPkg = packages.find((p) => p.identifier === '$rc_annual');
+    if (yearlyPkg?.hasFreeTrial) {
+      return {
+        hasFreeTrial: true,
+        trialDays: yearlyPkg.trialDays,
+        trialDescription: yearlyPkg.trialDescription,
+      };
+    }
+    return { hasFreeTrial: trialEligible, trialDays: FREE_TRIAL_DAYS, trialDescription: '' };
+  };
+
+  const trialInfo = getTrialInfo();
 
   // If in trial, show trial status
   if (inTrial) {
@@ -117,7 +189,7 @@ export default function SubscriptionScreen() {
 
         <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent}>
           <View style={styles.trialBadge}>
-            <Text style={styles.trialBadgeText}>🎁 FREE TRIAL</Text>
+            <Text style={styles.trialBadgeText}>FREE TRIAL</Text>
           </View>
 
           <View style={styles.trialCard}>
@@ -144,26 +216,24 @@ export default function SubscriptionScreen() {
             onPress={() => setSelectedPlan('yearly')}
             accessibilityLabel="Select yearly plan"
           >
-            {SUBSCRIPTION_PRICES.yearly.savings && (
-              <View style={styles.savingsBadge}>
-                <Text style={styles.savingsText}>SAVE {SUBSCRIPTION_PRICES.yearly.savings}</Text>
-              </View>
-            )}
+            <View style={styles.savingsBadge}>
+              <Text style={styles.savingsText}>BEST VALUE</Text>
+            </View>
             <View style={styles.planCardContent}>
               <View>
                 <Text style={styles.planCardTitle}>Yearly</Text>
                 <Text style={styles.planCardPrice}>
-                  ${SUBSCRIPTION_PRICES.yearly.price}
+                  {getPrice('yearly')}
                   <Text style={styles.planCardPeriod}>/year</Text>
                 </Text>
               </View>
-              <View style={[
-                styles.radioButton,
-                selectedPlan === 'yearly' && styles.radioButtonSelected,
-              ]}>
-                {selectedPlan === 'yearly' && (
-                  <View style={styles.radioButtonInner} />
-                )}
+              <View
+                style={[
+                  styles.radioButton,
+                  selectedPlan === 'yearly' && styles.radioButtonSelected,
+                ]}
+              >
+                {selectedPlan === 'yearly' && <View style={styles.radioButtonInner} />}
               </View>
             </View>
           </TouchableOpacity>
@@ -180,17 +250,17 @@ export default function SubscriptionScreen() {
               <View>
                 <Text style={styles.planCardTitle}>Monthly</Text>
                 <Text style={styles.planCardPrice}>
-                  ${SUBSCRIPTION_PRICES.monthly.price}
+                  {getPrice('monthly')}
                   <Text style={styles.planCardPeriod}>/month</Text>
                 </Text>
               </View>
-              <View style={[
-                styles.radioButton,
-                selectedPlan === 'monthly' && styles.radioButtonSelected,
-              ]}>
-                {selectedPlan === 'monthly' && (
-                  <View style={styles.radioButtonInner} />
-                )}
+              <View
+                style={[
+                  styles.radioButton,
+                  selectedPlan === 'monthly' && styles.radioButtonSelected,
+                ]}
+              >
+                {selectedPlan === 'monthly' && <View style={styles.radioButtonInner} />}
               </View>
             </View>
           </TouchableOpacity>
@@ -205,10 +275,7 @@ export default function SubscriptionScreen() {
               <ActivityIndicator color="#FFFFFF" />
             ) : (
               <Text style={styles.subscribeButtonText}>
-                Subscribe Now - ${selectedPlan === 'yearly'
-                  ? SUBSCRIPTION_PRICES.yearly.price
-                  : SUBSCRIPTION_PRICES.monthly.price}
-                /{selectedPlan === 'yearly' ? 'year' : 'month'}
+                Subscribe Now - {getPrice(selectedPlan)}/{selectedPlan === 'yearly' ? 'year' : 'month'}
               </Text>
             )}
           </TouchableOpacity>
@@ -239,7 +306,7 @@ export default function SubscriptionScreen() {
 
         <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent}>
           <View style={styles.premiumBadge}>
-            <Text style={styles.premiumBadgeText}>⭐ PREMIUM MEMBER</Text>
+            <Text style={styles.premiumBadgeText}>PREMIUM MEMBER</Text>
           </View>
 
           <View style={styles.subscriptionCard}>
@@ -253,20 +320,16 @@ export default function SubscriptionScreen() {
                 : 'N/A'}
             </Text>
             {daysUntilExpiry() !== null && (
-              <Text style={styles.daysRemaining}>
-                {daysUntilExpiry()} days remaining
-              </Text>
+              <Text style={styles.daysRemaining}>{daysUntilExpiry()} days remaining</Text>
             )}
 
-            {subscription.autoRenew && (
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={handleCancel}
-                accessibilityLabel="Cancel subscription"
-              >
-                <Text style={styles.cancelButtonText}>Cancel Auto-Renewal</Text>
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity
+              style={styles.manageButton}
+              onPress={handleManageSubscription}
+              accessibilityLabel="Manage subscription"
+            >
+              <Text style={styles.manageButtonText}>Manage Subscription</Text>
+            </TouchableOpacity>
           </View>
 
           <Text style={styles.featuresTitle}>Your Premium Features</Text>
@@ -285,7 +348,7 @@ export default function SubscriptionScreen() {
     );
   }
 
-  // Paywall for non-premium users (with trial option)
+  // Custom fallback paywall for non-premium users
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -304,10 +367,7 @@ export default function SubscriptionScreen() {
 
       <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent}>
         {/* Hero Section */}
-        <LinearGradient
-          colors={['#EF4444', '#DC2626']}
-          style={styles.heroSection}
-        >
+        <LinearGradient colors={['#EF4444', '#DC2626']} style={styles.heroSection}>
           <Text style={styles.heroEmoji}>😂</Text>
           <Text style={styles.heroTitle}>Unlock Premium Dad Jokes</Text>
           <Text style={styles.heroSubtitle}>
@@ -316,13 +376,16 @@ export default function SubscriptionScreen() {
         </LinearGradient>
 
         {/* Free Trial Banner */}
-        {trialEligible && (
+        {trialInfo.hasFreeTrial && (
           <View style={styles.trialBanner}>
             <View style={styles.trialBannerContent}>
-              <Text style={styles.trialBannerEmoji}>🎁</Text>
               <View style={styles.trialBannerText}>
-                <Text style={styles.trialBannerTitle}>Try {FREE_TRIAL_DAYS} Days FREE</Text>
-                <Text style={styles.trialBannerSubtitle}>No credit card required</Text>
+                <Text style={styles.trialBannerTitle}>
+                  Try {trialInfo.trialDays} Days FREE
+                </Text>
+                <Text style={styles.trialBannerSubtitle}>
+                  {trialInfo.trialDescription || 'No commitment required'}
+                </Text>
               </View>
             </View>
           </View>
@@ -340,128 +403,110 @@ export default function SubscriptionScreen() {
           </View>
         ))}
 
-        {/* Trial Button */}
-        {trialEligible && (
-          <>
-            <TouchableOpacity
-              style={[styles.trialButton, isLoading && styles.subscribeButtonDisabled]}
-              onPress={handleStartTrial}
-              disabled={isLoading}
-              accessibilityLabel="Start free trial"
-            >
-              {isLoading ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <>
-                  <Ionicons name="gift-outline" size={20} color="#FFFFFF" />
-                  <Text style={styles.trialButtonText}>
-                    Start {FREE_TRIAL_DAYS}-Day Free Trial
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
-
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>or subscribe now</Text>
-              <View style={styles.dividerLine} />
-            </View>
-          </>
-        )}
-
         {/* Plan Selection */}
         <Text style={styles.plansTitle}>Choose Your Plan</Text>
 
-        <TouchableOpacity
-          style={[
-            styles.planCard,
-            selectedPlan === 'yearly' && styles.planCardSelected,
-          ]}
-          onPress={() => setSelectedPlan('yearly')}
-          accessibilityLabel="Select yearly plan"
-        >
-          {SUBSCRIPTION_PRICES.yearly.savings && (
-            <View style={styles.savingsBadge}>
-              <Text style={styles.savingsText}>SAVE {SUBSCRIPTION_PRICES.yearly.savings}</Text>
-            </View>
-          )}
-          <View style={styles.planCardContent}>
-            <View>
-              <Text style={styles.planCardTitle}>Yearly</Text>
-              <Text style={styles.planCardPrice}>
-                ${SUBSCRIPTION_PRICES.yearly.price}
-                <Text style={styles.planCardPeriod}>/year</Text>
-              </Text>
-              <Text style={styles.planCardMonthly}>
-                Just ${(SUBSCRIPTION_PRICES.yearly.price / 12).toFixed(2)}/month
-              </Text>
-            </View>
-            <View style={[
-              styles.radioButton,
-              selectedPlan === 'yearly' && styles.radioButtonSelected,
-            ]}>
-              {selectedPlan === 'yearly' && (
-                <View style={styles.radioButtonInner} />
-              )}
-            </View>
-          </View>
-        </TouchableOpacity>
+        {isLoadingPackages ? (
+          <ActivityIndicator size="large" color="#EF4444" style={{ marginVertical: 20 }} />
+        ) : (
+          <>
+            <TouchableOpacity
+              style={[
+                styles.planCard,
+                selectedPlan === 'yearly' && styles.planCardSelected,
+              ]}
+              onPress={() => setSelectedPlan('yearly')}
+              accessibilityLabel="Select yearly plan"
+            >
+              <View style={styles.savingsBadge}>
+                <Text style={styles.savingsText}>BEST VALUE</Text>
+              </View>
+              <View style={styles.planCardContent}>
+                <View>
+                  <Text style={styles.planCardTitle}>Yearly</Text>
+                  <Text style={styles.planCardPrice}>
+                    {getPrice('yearly')}
+                    <Text style={styles.planCardPeriod}>/year</Text>
+                  </Text>
+                  {trialInfo.hasFreeTrial && (
+                    <Text style={styles.trialBadgeSmall}>
+                      {trialInfo.trialDays}-day free trial
+                    </Text>
+                  )}
+                </View>
+                <View
+                  style={[
+                    styles.radioButton,
+                    selectedPlan === 'yearly' && styles.radioButtonSelected,
+                  ]}
+                >
+                  {selectedPlan === 'yearly' && <View style={styles.radioButtonInner} />}
+                </View>
+              </View>
+            </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[
-            styles.planCard,
-            selectedPlan === 'monthly' && styles.planCardSelected,
-          ]}
-          onPress={() => setSelectedPlan('monthly')}
-          accessibilityLabel="Select monthly plan"
-        >
-          <View style={styles.planCardContent}>
-            <View>
-              <Text style={styles.planCardTitle}>Monthly</Text>
-              <Text style={styles.planCardPrice}>
-                ${SUBSCRIPTION_PRICES.monthly.price}
-                <Text style={styles.planCardPeriod}>/month</Text>
-              </Text>
-            </View>
-            <View style={[
-              styles.radioButton,
-              selectedPlan === 'monthly' && styles.radioButtonSelected,
-            ]}>
-              {selectedPlan === 'monthly' && (
-                <View style={styles.radioButtonInner} />
-              )}
-            </View>
-          </View>
-        </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.planCard,
+                selectedPlan === 'monthly' && styles.planCardSelected,
+              ]}
+              onPress={() => setSelectedPlan('monthly')}
+              accessibilityLabel="Select monthly plan"
+            >
+              <View style={styles.planCardContent}>
+                <View>
+                  <Text style={styles.planCardTitle}>Monthly</Text>
+                  <Text style={styles.planCardPrice}>
+                    {getPrice('monthly')}
+                    <Text style={styles.planCardPeriod}>/month</Text>
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    styles.radioButton,
+                    selectedPlan === 'monthly' && styles.radioButtonSelected,
+                  ]}
+                >
+                  {selectedPlan === 'monthly' && <View style={styles.radioButtonInner} />}
+                </View>
+              </View>
+            </TouchableOpacity>
+          </>
+        )}
 
         {/* Error Display */}
-        {error && (
-          <Text style={styles.errorText}>{error}</Text>
-        )}
+        {error && <Text style={styles.errorText}>{error}</Text>}
 
         {/* Subscribe Button */}
         <TouchableOpacity
           style={[styles.subscribeButton, isLoading && styles.subscribeButtonDisabled]}
           onPress={handleSubscribe}
-          disabled={isLoading}
+          disabled={isLoading || isLoadingPackages}
           accessibilityLabel={`Subscribe to ${selectedPlan} plan`}
         >
           {isLoading ? (
             <ActivityIndicator color="#FFFFFF" />
           ) : (
             <Text style={styles.subscribeButtonText}>
-              Subscribe - ${selectedPlan === 'yearly'
-                ? SUBSCRIPTION_PRICES.yearly.price
-                : SUBSCRIPTION_PRICES.monthly.price}
-              /{selectedPlan === 'yearly' ? 'year' : 'month'}
+              {trialInfo.hasFreeTrial
+                ? `Start ${trialInfo.trialDays}-Day Free Trial`
+                : `Subscribe - ${getPrice(selectedPlan)}/${selectedPlan === 'yearly' ? 'year' : 'month'}`}
             </Text>
           )}
         </TouchableOpacity>
 
+        {/* Show RevenueCat Paywall Button */}
+        <TouchableOpacity
+          style={styles.nativePaywallButton}
+          onPress={handlePresentNativePaywall}
+        >
+          <Text style={styles.nativePaywallText}>View All Options</Text>
+        </TouchableOpacity>
+
         {/* Terms */}
         <Text style={styles.termsText}>
-          By subscribing, you agree to our Terms of Service and Privacy Policy.
-          Subscriptions auto-renew unless cancelled at least 24 hours before the end of the current period.
+          By subscribing, you agree to our Terms of Service and Privacy Policy. Subscriptions
+          auto-renew unless cancelled at least 24 hours before the end of the current period.
         </Text>
       </ScrollView>
     </SafeAreaView>
@@ -542,10 +587,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  trialBannerEmoji: {
-    fontSize: 32,
-    marginRight: 12,
-  },
   trialBannerText: {
     flex: 1,
   },
@@ -590,48 +631,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6B7280',
   },
-  trialButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#10B981',
-    marginHorizontal: 20,
-    marginTop: 24,
-    paddingVertical: 18,
-    borderRadius: 16,
-    shadowColor: '#10B981',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-    gap: 8,
-  },
-  trialButtonText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: 20,
-    marginVertical: 24,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#E5E7EB',
-  },
-  dividerText: {
-    fontSize: 14,
-    color: '#9CA3AF',
-    marginHorizontal: 16,
-  },
   plansTitle: {
     fontSize: 20,
     fontWeight: '700',
     color: '#1F2937',
     marginHorizontal: 20,
+    marginTop: 24,
     marginBottom: 16,
   },
   planCard: {
@@ -669,9 +674,10 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     color: '#6B7280',
   },
-  planCardMonthly: {
-    fontSize: 14,
-    color: '#6B7280',
+  trialBadgeSmall: {
+    fontSize: 12,
+    color: '#10B981',
+    fontWeight: '600',
     marginTop: 4,
   },
   savingsBadge: {
@@ -732,6 +738,17 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: '#FFFFFF',
+  },
+  nativePaywallButton: {
+    marginHorizontal: 20,
+    marginTop: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  nativePaywallText: {
+    fontSize: 16,
+    color: '#EF4444',
+    fontWeight: '600',
   },
   termsText: {
     fontSize: 12,
@@ -826,16 +843,15 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 16,
   },
-  cancelButton: {
+  manageButton: {
     paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingVertical: 12,
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#EF4444',
+    backgroundColor: '#EF4444',
   },
-  cancelButtonText: {
+  manageButtonText: {
     fontSize: 14,
-    fontWeight: '500',
-    color: '#EF4444',
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });
