@@ -45,11 +45,14 @@ REQUIRED - Must complete before App Store/Play Store submission
     - Configure email templates (confirmation, password reset)
     - (Optional) Enable social logins (Google, Apple)
 
-[ ] UPDATE CONTACT EMAILS
-    - Replace placeholder emails in legal documents:
-      * app/settings/terms.tsx: support@dadjokes.app
-      * app/settings/privacy.tsx: privacy@dadjokes.app
-    - Set up actual email addresses or use your real contact info
+[X] UPDATE CONTACT EMAILS
+    - All contact emails updated to jarrod@jandhtechnology.com:
+      * app/settings/terms.tsx
+      * app/settings/privacy-policy.tsx
+      * app/settings/support.tsx
+      * app/customer-center.tsx
+      * fastlane/metadata/en-US/description.txt
+      * fastlane/metadata/android/en-US/full_description.txt
 
 [ ] APP STORE ASSETS
     - App icon: Already created (1024x1024)
@@ -153,7 +156,6 @@ CURRENT STATUS
 + Push notification infrastructure
 + RevenueCat service code integrated
 + Privacy Policy and Terms of Service
-+ Open Source Licenses page
 + App icons and splash screen
 + Favorites screen
 + Category filtering (Premium)

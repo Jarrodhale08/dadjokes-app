@@ -13,7 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 const LAST_UPDATED = 'December 24, 2024';
 const COMPANY_NAME = 'Dad Jokes';
-const CONTACT_EMAIL = 'privacy@dadjokes.app';
+const CONTACT_EMAIL = 'jarrod@jandhtechnology.com';
 
 export default function PrivacyPolicyScreen() {
   const router = useRouter();

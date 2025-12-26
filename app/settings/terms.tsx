@@ -197,7 +197,7 @@ export default function TermsOfServiceScreen() {
           <Text style={styles.sectionText}>
             If you have any questions about these Terms of Service, please contact us at:
           </Text>
-          <Text style={styles.contactEmail}>support@dadjokes.app</Text>
+          <Text style={styles.contactEmail}>jarrod@jandhtechnology.com</Text>
         </View>
 
         <View style={styles.footer}>

@@ -70,7 +70,7 @@ export default function CustomerCenterScreen() {
   };
 
   const handleContactSupport = () => {
-    const email = 'support@dadjokes.com';
+    const email = 'jarrod@jandhtechnology.com';
     const subject = 'Subscription Support Request';
     const body = `User ID: ${subscription.purchasedAt ? 'Premium' : 'Free'}
 Platform: ${Platform.OS}

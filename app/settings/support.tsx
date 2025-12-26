@@ -7,7 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 export default function SupportScreen() {
   const router = useRouter();
   const handleEmail = () => {
-    Linking.openURL('mailto:support@example.com?subject=DadJokes%20Support');
+    Linking.openURL('mailto:jarrod@jandhtechnology.com?subject=DadJokes%20Support');
   };
 
   const handleFAQ = () => {
@@ -111,7 +111,7 @@ export default function SupportScreen() {
         <View style={styles.contactCard}>
           <Text style={styles.contactTitle}>Need immediate help?</Text>
           <Text style={styles.contactText}>
-            Email us at support@dadjokesapp.com and we'll get back to you within 24 hours.
+            Email us at jarrod@jandhtechnology.com and we'll get back to you within 24 hours.
           </Text>
         </View>
       </ScrollView>
