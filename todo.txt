@@ -2,7 +2,7 @@
                     DAD JOKES - PRE-PUBLICATION CHECKLIST
 ================================================================================
 
-Last Updated: December 22, 2024
+Last Updated: December 26, 2024
 
 ================================================================================
 REQUIRED - Must complete before App Store/Play Store submission
@@ -13,6 +13,18 @@ REQUIRED - Must complete before App Store/Play Store submission
     - RevenueCat SDK integrated with modern methods
     - Paywall UI and Customer Center implemented
     - See REVENUECAT_SETUP.md for dashboard configuration
+
+[X] SUPABASE CREDENTIALS CONFIGURED
+    - URL: https://kazhissaknwmagcribxq.supabase.co (Build project)
+    - Anon key configured in .env
+    - APP_ID: dadjokes
+
+[X] SUPABASE MIGRATION EXECUTED
+    - All tables created: jokes, user_favorites, user_collections, user_streaks, user_preferences
+    - RLS policies enabled on all tables
+    - 1,092 dad jokes seeded across 12 categories
+    - Update triggers configured
+    - Permissions granted to anon and authenticated roles
 
 [ ] APP STORE PRODUCTS (iOS)
     - Log into App Store Connect
