@@ -309,27 +309,37 @@ export const PREMIUM_FEATURES = [
   {
     icon: '📚',
     title: 'Full Joke Library',
-    description: 'Access 150+ curated dad jokes',
+    description: 'Access 1,000+ curated dad jokes',
   },
   {
     icon: '🏷️',
-    title: 'Category Filtering',
+    title: 'All Categories',
     description: 'Browse jokes by 12 different categories',
   },
   {
+    icon: '🏆',
+    title: 'Achievements',
+    description: 'Unlock 20+ badges and track your progress',
+  },
+  {
+    icon: '📜',
+    title: 'Joke History',
+    description: 'Browse all jokes you have viewed by date',
+  },
+  {
+    icon: '📤',
+    title: 'Export Favorites',
+    description: 'Export your collection to share or backup',
+  },
+  {
     icon: '🔥',
-    title: 'Daily Joke Streak',
-    description: 'Track your daily joke streak and earn badges',
+    title: 'Streak Tracking',
+    description: 'Track your daily streak and earn badges',
   },
   {
     icon: '📁',
     title: 'Custom Collections',
     description: 'Organize jokes into personal collections',
-  },
-  {
-    icon: '🔍',
-    title: 'Search Library',
-    description: 'Find the perfect joke instantly',
   },
   {
     icon: '🚫',

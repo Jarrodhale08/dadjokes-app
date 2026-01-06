@@ -1,8 +1,8 @@
-app_identifier("com.dadjokes.app")
+app_identifier("com.jarrodhale08.dadjokes")
 apple_id(ENV["APPLE_ID"])
 itc_team_id(ENV["ITC_TEAM_ID"])
 team_id(ENV["TEAM_ID"])
 
 # Android
 json_key_file(ENV["GOOGLE_PLAY_JSON_KEY"])
-package_name("com.dadjokes.app")
+package_name("com.jarrodhale08.dadjokes")

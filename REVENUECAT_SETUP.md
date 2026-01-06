@@ -9,6 +9,7 @@ DadJokes uses RevenueCat to manage subscriptions across iOS and Android platform
 - Monthly subscription ($2.99/month)
 - Yearly subscription ($19.99/year - Save 44%)
 - Premium entitlement: `dadjokes_pro`
+- iOS Product IDs: `Pro_Dad_Jokes_Monthly`, `Pro_Dad_Jokes_Annual`
 
 ## Prerequisites
 
@@ -57,7 +58,7 @@ EXPO_PUBLIC_REVENUECAT_API_KEY=your_public_api_key_here
 Create these three subscription products:
 
 #### Monthly Subscription
-- **Product ID:** `dadjokes_monthly`
+- **Product ID:** `Pro_Dad_Jokes_Monthly`
 - **Reference Name:** DadJokes Monthly
 - **Subscription Duration:** 1 Month
 - **Price:** $2.99 USD
@@ -67,7 +68,7 @@ Create these three subscription products:
   - Free
 
 #### Yearly Subscription
-- **Product ID:** `dadjokes_yearly`
+- **Product ID:** `Pro_Dad_Jokes_Annual`
 - **Reference Name:** DadJokes Yearly
 - **Subscription Duration:** 1 Year
 - **Price:** $19.99 USD
@@ -77,7 +78,7 @@ Create these three subscription products:
   - Free
 
 #### Lifetime Purchase (Optional)
-- **Product ID:** `dadjokes_lifetime`
+- **Product ID:** `Pro_Dad_Jokes_Lifetime`
 - **Reference Name:** DadJokes Lifetime
 - **Type:** Non-Consumable In-App Purchase
 - **Price:** $49.99 USD
@@ -99,7 +100,7 @@ Create these three subscription products:
 3. Click **Create subscription**
 
 #### Monthly Subscription
-- **Product ID:** `dadjokes_monthly`
+- **Product ID:** `Pro_Dad_Jokes_Monthly`
 - **Name:** DadJokes Premium Monthly
 - **Description:** Monthly access to all premium dad jokes features
 - **Billing period:** Monthly (1 month)
@@ -107,7 +108,7 @@ Create these three subscription products:
 - **Free trial:** 7 days
 
 #### Yearly Subscription
-- **Product ID:** `dadjokes_yearly`
+- **Product ID:** `Pro_Dad_Jokes_Annual`
 - **Name:** DadJokes Premium Yearly
 - **Description:** Yearly access to all premium dad jokes features (Save 44%)
 - **Billing period:** Yearly (12 months)
@@ -158,9 +159,9 @@ Create these three subscription products:
 1. Go to **Products** in RevenueCat Dashboard
 2. Click **+ New** → **Import from App Store**
 3. Select all products:
-   - `dadjokes_monthly`
-   - `dadjokes_yearly`
-   - `dadjokes_lifetime` (if created)
+   - `Pro_Dad_Jokes_Monthly`
+   - `Pro_Dad_Jokes_Annual`
+   - `Pro_Dad_Jokes_Lifetime` (if created)
 4. Click **Import**
 
 ### 5.2 Verify Products
@@ -187,9 +188,9 @@ Ensure products show:
 1. Select `dadjokes_pro` entitlement
 2. Click **Attach Products**
 3. Select all products:
-   - `dadjokes_monthly`
-   - `dadjokes_yearly`
-   - `dadjokes_lifetime` (if created)
+   - `Pro_Dad_Jokes_Monthly`
+   - `Pro_Dad_Jokes_Annual`
+   - `Pro_Dad_Jokes_Lifetime` (if created)
 4. Click **Attach**
 
 ---
@@ -210,17 +211,17 @@ Add the following packages:
 
 #### Package 1: Monthly
 - **Identifier:** `monthly`
-- **Product:** `dadjokes_monthly`
+- **Product:** `Pro_Dad_Jokes_Monthly`
 - **Position:** 1
 
 #### Package 2: Yearly (Recommended)
 - **Identifier:** `annual`
-- **Product:** `dadjokes_yearly`
+- **Product:** `Pro_Dad_Jokes_Annual`
 - **Position:** 0 (shows first)
 
 #### Package 3: Lifetime (Optional)
 - **Identifier:** `lifetime`
-- **Product:** `dadjokes_lifetime`
+- **Product:** `Pro_Dad_Jokes_Lifetime`
 - **Position:** 2
 
 ### 7.3 Set as Current Offering

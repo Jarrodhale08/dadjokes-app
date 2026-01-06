@@ -117,6 +117,23 @@ export default function SettingsScreen() {
       isPremium: true,
     },
     {
+      id: 'achievements',
+      title: 'Achievements',
+      subtitle: 'Track your progress and unlock badges',
+      icon: 'trophy-outline',
+      route: '/settings/achievements',
+      badge: '🏆',
+      isPremium: true,
+    },
+    {
+      id: 'joke-history',
+      title: 'Joke History',
+      subtitle: 'Browse all jokes you have viewed',
+      icon: 'time-outline',
+      route: '/settings/joke-history',
+      isPremium: true,
+    },
+    {
       id: 'collections',
       title: 'My Collections',
       subtitle: 'Organize jokes into custom lists',

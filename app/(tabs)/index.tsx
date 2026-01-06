@@ -41,15 +41,16 @@ export default function Screen() {
   const [selectedCategory, setSelectedCategory] = useState<JokeCategory | null>(null);
   const [shareModalVisible, setShareModalVisible] = useState(false);
   const [selectedJokeForShare, setSelectedJokeForShare] = useState<string>('');
+  const [selectedJokeIdForShare, setSelectedJokeIdForShare] = useState<string>('');
 
-  const { favorites, toggleFavorite, jokes: savedJokes, addJoke, recordJokeView } = useAppStore();
-  const { isPremium, checkSubscriptionStatus } = useSubscriptionStore();
+  const { favorites, toggleFavorite, jokes: savedJokes, addJoke, recordJokeView, addToHistory, trackCategoryExplored, checkAchievements, incrementShareCount } = useAppStore();
+  const { isPremium, initializeFromRevenueCat } = useSubscriptionStore();
 
   const premium = isPremium();
 
   useEffect(() => {
-    checkSubscriptionStatus();
-  }, [checkSubscriptionStatus]);
+    initializeFromRevenueCat();
+  }, [initializeFromRevenueCat]);
 
   const toDisplayJoke = useCallback((apiJoke: DadJoke): DisplayJoke => ({
     id: apiJoke.id,
@@ -64,24 +65,34 @@ export default function Screen() {
 
       if (premium && selectedCategory) {
         const libraryJokes = getLibraryJokes(5, selectedCategory);
-        setJokes(libraryJokes.map(j => ({
+        const displayJokes = libraryJokes.map(j => ({
           id: j.id,
           joke: j.joke,
           isFavorite: favorites.includes(j.id),
           category: j.category,
-        })));
+        }));
+        setJokes(displayJokes);
+        // Track category explored and add to history for premium users
+        trackCategoryExplored(selectedCategory);
+        displayJokes.forEach(j => addToHistory({ id: j.id, joke: j.joke, category: j.category }));
       } else {
         const fetchedJokes = await dadJokesService.getMultipleRandomJokes(5);
-        setJokes(fetchedJokes.map(toDisplayJoke));
+        const displayJokes = fetchedJokes.map(toDisplayJoke);
+        setJokes(displayJokes);
+        // Add to history for premium users
+        if (premium) {
+          displayJokes.forEach(j => addToHistory({ id: j.id, joke: j.joke }));
+        }
       }
       recordJokeView();
+      checkAchievements();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load jokes');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [premium, selectedCategory, favorites, toDisplayJoke, recordJokeView]);
+  }, [premium, selectedCategory, favorites, toDisplayJoke, recordJokeView, addToHistory, trackCategoryExplored, checkAchievements]);
 
   const loadMoreJokes = useCallback(async () => {
     if (loadingMore) return;
@@ -133,6 +144,7 @@ export default function Screen() {
             const filtered = prev.filter(j => j.id !== newJoke.id);
             return [newJoke, ...filtered];
           });
+          addToHistory({ id: newJoke.id, joke: newJoke.joke, category: newJoke.category });
         }
       } else {
         const newJoke = await dadJokesService.getRandomJoke();
@@ -141,12 +153,16 @@ export default function Screen() {
           const filtered = prev.filter(j => j.id !== displayJoke.id);
           return [displayJoke, ...filtered];
         });
+        if (premium) {
+          addToHistory({ id: displayJoke.id, joke: displayJoke.joke });
+        }
       }
       recordJokeView();
+      checkAchievements();
     } catch (err) {
       console.warn('Failed to get new joke:', err);
     }
-  }, [premium, selectedCategory, favorites, toDisplayJoke, recordJokeView]);
+  }, [premium, selectedCategory, favorites, toDisplayJoke, recordJokeView, addToHistory, checkAchievements]);
 
   useEffect(() => {
     loadJokes();
@@ -185,12 +201,22 @@ export default function Screen() {
       });
     }
     toggleFavorite(joke.id);
-  }, [savedJokes, addJoke, toggleFavorite]);
+    // Check achievements after toggling favorite
+    setTimeout(() => checkAchievements(), 100);
+  }, [savedJokes, addJoke, toggleFavorite, checkAchievements]);
 
   const handleShare = useCallback((joke: DisplayJoke) => {
     setSelectedJokeForShare(joke.joke);
+    setSelectedJokeIdForShare(joke.id);
     setShareModalVisible(true);
   }, []);
+
+  const handleShareComplete = useCallback(() => {
+    if (selectedJokeIdForShare) {
+      incrementShareCount(selectedJokeIdForShare);
+      checkAchievements();
+    }
+  }, [selectedJokeIdForShare, incrementShareCount, checkAchievements]);
 
   const handleCategorySelect = useCallback((category: JokeCategory | null) => {
     if (!premium) {
@@ -415,6 +441,7 @@ export default function Screen() {
         onClose={() => setShareModalVisible(false)}
         joke={selectedJokeForShare}
         includeAppLink={true}
+        onShare={handleShareComplete}
       />
     </SafeAreaView>
   );

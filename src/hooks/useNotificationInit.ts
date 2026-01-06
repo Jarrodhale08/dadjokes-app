@@ -39,13 +39,10 @@ export function useNotificationInit(): NotificationInitState {
         cleanup = notificationService.setupListeners(
           // onNotificationReceived
           (notification) => {
-            console.log('Notification received in foreground:', notification);
-            // Handle foreground notification if needed
+            // Notification received in foreground - can add custom handling here
           },
           // onNotificationResponse
           (response) => {
-            console.log('Notification tapped:', response);
-
             // Handle navigation based on notification data
             const data = response.notification.request.content.data;
 

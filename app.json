@@ -22,7 +22,10 @@
       "bundleIdentifier": "com.jarrodhale08.dadjokes",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "UIBackgroundModes": ["remote-notification"]
+        "UIBackgroundModes": [
+          "remote-notification",
+          "remote-notification"
+        ]
       }
     },
     "android": {
@@ -35,7 +38,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "6d6f0e2b-9311-4513-b4bb-38feae527073"
+        "projectId": "5c091e4b-4e90-4b13-863d-3894a440ebf8"
       }
     },
     "web": {
@@ -57,6 +60,9 @@
     "experiments": {
       "typedRoutes": true
     },
-    "owner": "jarrodhale08"
+    "owner": "jarrodhale",
+    "updates": {
+      "url": "https://u.expo.dev/5c091e4b-4e90-4b13-863d-3894a440ebf8"
+    }
   }
 }

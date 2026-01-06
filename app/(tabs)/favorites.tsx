@@ -7,11 +7,17 @@ import {
   FlatList,
   RefreshControl,
   Alert,
+  Share,
+  ActionSheetIOS,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Swipeable } from 'react-native-gesture-handler';
+import { useRouter } from 'expo-router';
+import * as Clipboard from 'expo-clipboard';
 import { useAppStore } from '../../src/stores/appStore';
+import { useSubscriptionStore } from '../../src/stores/subscriptionStore';
 import { colors } from '../../src/theme/colors';
 import { SocialShareModal } from '../../src/components/SocialShareModal';
 import { CATEGORY_INFO, JokeCategory } from '../../src/data/jokeLibrary';
@@ -27,11 +33,15 @@ interface FavoriteJoke {
 }
 
 export default function FavoritesScreen() {
+  const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
   const [shareModalVisible, setShareModalVisible] = useState(false);
   const [selectedJokeForShare, setSelectedJokeForShare] = useState('');
+  const [selectedJokeIdForShare, setSelectedJokeIdForShare] = useState('');
 
-  const { jokes, favorites, toggleFavorite, updateJokeRating } = useAppStore();
+  const { jokes, favorites, toggleFavorite, updateJokeRating, incrementShareCount, checkAchievements } = useAppStore();
+  const { isPremium } = useSubscriptionStore();
+  const premium = isPremium();
 
   const swipeableRefs = useRef<Map<string, Swipeable | null>>(new Map());
   const currentlyOpenSwipeable = useRef<string | null>(null);
@@ -77,12 +87,104 @@ export default function FavoritesScreen() {
       ? `${joke.setup}\n\n${joke.punchline}`
       : joke.setup;
     setSelectedJokeForShare(jokeText);
+    setSelectedJokeIdForShare(joke.id);
     setShareModalVisible(true);
   }, []);
+
+  const handleShareComplete = useCallback(() => {
+    if (selectedJokeIdForShare) {
+      incrementShareCount(selectedJokeIdForShare);
+      checkAchievements();
+    }
+  }, [selectedJokeIdForShare, incrementShareCount, checkAchievements]);
 
   const handleRate = useCallback((jokeId: string, rating: number) => {
     updateJokeRating(jokeId, rating);
   }, [updateJokeRating]);
+
+  // Export favorites as text (Premium feature)
+  const generateExportText = useCallback(() => {
+    if (favoriteJokes.length === 0) return '';
+
+    const header = `My Favorite Dad Jokes\n${'='.repeat(30)}\n\n`;
+    const jokesText = favoriteJokes.map((joke, index) => {
+      const categoryInfo = CATEGORY_INFO[joke.category as JokeCategory];
+      const categoryLabel = categoryInfo ? `[${categoryInfo.label}]` : '';
+      const rating = joke.rating > 0 ? ` ${'⭐'.repeat(joke.rating)}` : '';
+      const text = joke.punchline
+        ? `${joke.setup}\n${joke.punchline}`
+        : joke.setup;
+      return `${index + 1}. ${categoryLabel}${rating}\n${text}`;
+    }).join('\n\n---\n\n');
+    const footer = `\n\n${'='.repeat(30)}\nExported from Dad Jokes App\n${favoriteJokes.length} jokes`;
+
+    return header + jokesText + footer;
+  }, [favoriteJokes]);
+
+  const handleExport = useCallback(() => {
+    if (!premium) {
+      Alert.alert(
+        'Premium Feature',
+        'Export your favorites collection is a premium feature. Upgrade to export your jokes!',
+        [
+          { text: 'Maybe Later', style: 'cancel' },
+          { text: 'Upgrade', onPress: () => router.push('/subscription') },
+        ]
+      );
+      return;
+    }
+
+    if (favoriteJokes.length === 0) {
+      Alert.alert('No Favorites', 'Save some jokes first before exporting!');
+      return;
+    }
+
+    const exportText = generateExportText();
+
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ['Cancel', 'Copy to Clipboard', 'Share...'],
+          cancelButtonIndex: 0,
+        },
+        async (buttonIndex) => {
+          if (buttonIndex === 1) {
+            await Clipboard.setStringAsync(exportText);
+            Alert.alert('Copied!', 'Your favorites have been copied to clipboard.');
+          } else if (buttonIndex === 2) {
+            await Share.share({
+              message: exportText,
+              title: 'My Favorite Dad Jokes',
+            });
+          }
+        }
+      );
+    } else {
+      Alert.alert(
+        'Export Favorites',
+        'How would you like to export your jokes?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Copy to Clipboard',
+            onPress: async () => {
+              await Clipboard.setStringAsync(exportText);
+              Alert.alert('Copied!', 'Your favorites have been copied to clipboard.');
+            },
+          },
+          {
+            text: 'Share',
+            onPress: async () => {
+              await Share.share({
+                message: exportText,
+                title: 'My Favorite Dad Jokes',
+              });
+            },
+          },
+        ]
+      );
+    }
+  }, [premium, favoriteJokes, generateExportText, router]);
 
   const renderRightActions = useCallback((joke: FavoriteJoke) => (
     <TouchableOpacity
@@ -176,10 +278,32 @@ export default function FavoritesScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Favorites</Text>
-        <Text style={styles.headerSubtitle}>
-          {favoriteJokes.length} saved joke{favoriteJokes.length !== 1 ? 's' : ''}
-        </Text>
+        <View style={styles.headerContent}>
+          <View>
+            <Text style={styles.headerTitle}>Favorites</Text>
+            <Text style={styles.headerSubtitle}>
+              {favoriteJokes.length} saved joke{favoriteJokes.length !== 1 ? 's' : ''}
+            </Text>
+          </View>
+          {favoriteJokes.length > 0 && (
+            <TouchableOpacity
+              style={styles.exportButton}
+              onPress={handleExport}
+              accessibilityLabel="Export favorites"
+            >
+              <Ionicons
+                name="download-outline"
+                size={22}
+                color={colors.text.inverse}
+              />
+              {!premium && (
+                <View style={styles.premiumBadge}>
+                  <Ionicons name="star" size={10} color={colors.warning} />
+                </View>
+              )}
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       <FlatList
@@ -206,6 +330,7 @@ export default function FavoritesScreen() {
         onClose={() => setShareModalVisible(false)}
         joke={selectedJokeForShare}
         includeAppLink={true}
+        onShare={handleShareComplete}
       />
     </SafeAreaView>
   );
@@ -226,6 +351,11 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   headerTitle: {
     fontSize: 28,
     fontWeight: '800',
@@ -236,6 +366,25 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.text.inverse,
     opacity: 0.8,
+  },
+  exportButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  premiumBadge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: colors.surface.DEFAULT,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   listContent: {
     padding: 16,

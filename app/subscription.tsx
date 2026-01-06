@@ -1,11 +1,10 @@
 /**
  * Subscription Screen
- * Displays RevenueCat Paywall UI or falls back to custom paywall
+ * Custom paywall for premium subscriptions
  *
- * Documentation: https://www.revenuecat.com/docs/tools/paywalls
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -19,7 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import RevenueCatUI, { PAYWALL_RESULT } from 'react-native-purchases-ui';
+// Using custom paywall only - RevenueCat native paywall disabled
 import {
   useSubscriptionStore,
   SUBSCRIPTION_PRICES,
@@ -36,7 +35,7 @@ export default function SubscriptionScreen() {
   const [selectedPlan, setSelectedPlan] = useState<PlanType>('yearly');
   const [packages, setPackages] = useState<SubscriptionPackage[]>([]);
   const [isLoadingPackages, setIsLoadingPackages] = useState(true);
-  const [useNativePaywall, setUseNativePaywall] = useState(true);
+  
 
   const {
     subscription,
@@ -47,7 +46,7 @@ export default function SubscriptionScreen() {
     daysUntilExpiry,
     isLoading,
     error,
-    presentPaywall,
+
     purchasePackage,
     restorePurchase,
     updateFromCustomerInfo,
@@ -74,41 +73,7 @@ export default function SubscriptionScreen() {
     loadPackages();
   }, []);
 
-  // Try to present native RevenueCat paywall
-  const handlePresentNativePaywall = useCallback(async () => {
-    try {
-      const result = await RevenueCatUI.presentPaywall();
 
-      // Update subscription state
-      const customerInfo = await revenueCatService.getCustomerInfo();
-      if (customerInfo) {
-        updateFromCustomerInfo(customerInfo);
-      }
-
-      if (result === PAYWALL_RESULT.PURCHASED || result === PAYWALL_RESULT.RESTORED) {
-        Alert.alert(
-          'Welcome to Premium!',
-          'You now have access to all premium features.',
-          [{ text: 'Start Exploring', onPress: () => router.back() }]
-        );
-      }
-    } catch (err) {
-      console.error('Native paywall error:', err);
-      // Fall back to custom paywall
-      setUseNativePaywall(false);
-    }
-  }, [router, updateFromCustomerInfo]);
-
-  // Show native paywall on mount for non-premium users
-  useEffect(() => {
-    if (!premium && !inTrial && useNativePaywall && !isLoadingPackages) {
-      // Small delay to ensure screen is mounted
-      const timer = setTimeout(() => {
-        handlePresentNativePaywall();
-      }, 300);
-      return () => clearTimeout(timer);
-    }
-  }, [premium, inTrial, useNativePaywall, isLoadingPackages, handlePresentNativePaywall]);
 
   const handleSubscribe = async () => {
     const packageId = selectedPlan === 'yearly' ? '$rc_annual' : '$rc_monthly';
@@ -495,14 +460,6 @@ export default function SubscriptionScreen() {
           )}
         </TouchableOpacity>
 
-        {/* Show RevenueCat Paywall Button */}
-        <TouchableOpacity
-          style={styles.nativePaywallButton}
-          onPress={handlePresentNativePaywall}
-        >
-          <Text style={styles.nativePaywallText}>View All Options</Text>
-        </TouchableOpacity>
-
         {/* Terms */}
         <Text style={styles.termsText}>
           By subscribing, you agree to our Terms of Service and Privacy Policy. Subscriptions
@@ -738,17 +695,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: '#FFFFFF',
-  },
-  nativePaywallButton: {
-    marginHorizontal: 20,
-    marginTop: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  nativePaywallText: {
-    fontSize: 16,
-    color: '#EF4444',
-    fontWeight: '600',
   },
   termsText: {
     fontSize: 12,

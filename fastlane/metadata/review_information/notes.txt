@@ -1,0 +1,17 @@
+Pro Dad Jokes can be tested without login. Browse jokes freely.
+
+DEMO ACCOUNT (for testing premium features):
+Email: demo@jandhtechnology.com
+Password: AppReview2026!
+
+This demo account has premium access enabled for review purposes.
+Premium features include: full joke library, all categories, achievements,
+joke history, streak tracking, and ad-free experience.
+
+To test the subscription flow:
+1. Launch app and complete onboarding
+2. Tap "Go Premium" or access via Settings
+3. The custom paywall will show subscription options
+4. Use sandbox test account to test purchases
+
+No special hardware or additional setup required.

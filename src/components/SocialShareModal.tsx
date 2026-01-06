@@ -29,6 +29,7 @@ interface SocialShareModalProps {
   onClose: () => void;
   joke: string;
   includeAppLink?: boolean;
+  onShare?: () => void; // Callback when a joke is successfully shared
 }
 
 export const SocialShareModal: React.FC<SocialShareModalProps> = ({
@@ -36,12 +37,14 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
   onClose,
   joke,
   includeAppLink = true,
+  onShare,
 }) => {
   const handleShare = useCallback(async (platform: SocialPlatform) => {
     if (platform === 'copy') {
       const formattedText = getFormattedJokeText(joke, includeAppLink);
       await setStringAsync(formattedText);
       Alert.alert('Copied!', 'Joke copied to clipboard');
+      onShare?.();
       onClose();
       return;
     }
@@ -51,9 +54,10 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
     if (!result.success && result.error) {
       Alert.alert('Share Error', result.error);
     } else if (result.success) {
+      onShare?.();
       onClose();
     }
-  }, [joke, includeAppLink, onClose]);
+  }, [joke, includeAppLink, onClose, onShare]);
 
   return (
     <Modal

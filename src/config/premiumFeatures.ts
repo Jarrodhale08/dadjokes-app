@@ -9,6 +9,7 @@ export const FREE_TIER_LIMITS = {
   maxFavorites: 25,               // Free users can save up to 25 favorite jokes
   maxCustomJokes: 5,              // Free users can create 5 custom jokes
   dailyJokeLimit: 10,             // Free users get 10 jokes per day
+  maxCustomReminders: 1,          // Free users get 1 reminder time
 
   // Categories
   allCategories: false,           // Premium unlocks all joke categories
@@ -20,6 +21,10 @@ export const FREE_TIER_LIMITS = {
   offlineMode: false,             // Offline joke access is premium
   adFree: false,                  // Ad-free experience is premium
   jokeOfTheDay: true,             // Free users get joke of the day
+  jokeHistory: false,             // Joke history is premium
+  achievements: false,            // Full achievements are premium
+  advancedSearch: false,          // Advanced search in library is premium
+  exportFavorites: false,         // Export favorites is premium
 
   // Customization
   customThemes: false,            // Custom themes are premium
@@ -47,6 +52,36 @@ export const PREMIUM_FEATURES = [
     icon: 'albums',
   },
   {
+    id: 'joke_library',
+    name: 'Full Joke Library',
+    description: 'Access 1,000+ curated dad jokes with search',
+    icon: 'library',
+  },
+  {
+    id: 'joke_history',
+    name: 'Joke History',
+    description: 'Browse all jokes you have viewed, organized by date',
+    icon: 'time',
+  },
+  {
+    id: 'achievements',
+    name: 'Achievements',
+    description: 'Unlock 20+ badges and track your progress',
+    icon: 'trophy',
+  },
+  {
+    id: 'export_favorites',
+    name: 'Export Favorites',
+    description: 'Export your favorites collection to share or backup',
+    icon: 'download',
+  },
+  {
+    id: 'custom_reminders',
+    name: 'Multiple Reminders',
+    description: 'Set unlimited joke reminders throughout the day',
+    icon: 'alarm',
+  },
+  {
     id: 'ad_free',
     name: 'Ad-Free Experience',
     description: 'Enjoy jokes without any advertisements',
@@ -63,12 +98,6 @@ export const PREMIUM_FEATURES = [
     name: 'Clean Sharing',
     description: 'Share jokes without watermarks',
     icon: 'share-social',
-  },
-  {
-    id: 'custom_themes',
-    name: 'Custom Themes',
-    description: 'Personalize the app with different color themes',
-    icon: 'color-palette',
   },
   {
     id: 'cloud_sync',

@@ -103,7 +103,7 @@ class NotificationService {
    */
   async requestPermissions(): Promise<boolean> {
     if (!Device.isDevice) {
-      console.log('Push notifications require a physical device');
+      // Push notifications require a physical device
       return false;
     }
 
@@ -238,7 +238,7 @@ class NotificationService {
         });
       }
 
-      console.log('Daily reminders scheduled');
+      // Daily reminders scheduled successfully
     } catch (error) {
       console.error('Failed to schedule daily reminder:', error);
     }
@@ -333,14 +333,12 @@ class NotificationService {
   ): () => void {
     const receivedSubscription = Notifications.addNotificationReceivedListener(
       (notification) => {
-        console.log('Notification received:', notification);
         onNotificationReceived?.(notification);
       }
     );
 
     const responseSubscription = Notifications.addNotificationResponseReceivedListener(
       (response) => {
-        console.log('Notification response:', response);
         onNotificationResponse?.(response);
       }
     );

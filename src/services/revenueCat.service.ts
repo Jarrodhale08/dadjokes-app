@@ -14,7 +14,6 @@ import Purchases, {
   PURCHASES_ERROR_CODE,
   PurchasesError,
 } from 'react-native-purchases';
-import RevenueCatUI, { PAYWALL_RESULT } from 'react-native-purchases-ui';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
@@ -26,10 +25,10 @@ const REVENUECAT_API_KEY = Constants.expoConfig?.extra?.EXPO_PUBLIC_REVENUECAT_A
 // Entitlement ID - must match what's configured in RevenueCat dashboard
 export const ENTITLEMENT_ID = 'dadjokes_pro';
 
-// Product identifiers
+// Product identifiers - must match App Store Connect product IDs - must match App Store Connect product IDs
 export const PRODUCT_IDS = {
-  MONTHLY: 'dadjokes_monthly',
-  ANNUAL: 'dadjokes_yearly',
+  MONTHLY: 'Pro_Dad_Jokes_Monthly',
+  ANNUAL: 'Pro_Dad_Jokes_Annual',
 } as const;
 
 export interface SubscriptionPackage {
@@ -56,11 +55,6 @@ export interface PurchaseResult {
   customerInfo: CustomerInfo | null;
   error?: string;
   userCancelled?: boolean;
-}
-
-export interface PaywallResult {
-  result: PAYWALL_RESULT;
-  customerInfo?: CustomerInfo;
 }
 
 class RevenueCatService {
@@ -103,7 +97,7 @@ class RevenueCatService {
       });
 
       this.isInitialized = true;
-      console.log('RevenueCat initialized successfully');
+      // RevenueCat initialized successfully
     } catch (error) {
       console.error('Failed to initialize RevenueCat:', error);
       this.initializationPromise = null;
@@ -294,62 +288,6 @@ class RevenueCatService {
         customerInfo: null,
         error: purchaseError.message || 'Purchase failed',
       };
-    }
-  }
-
-  /**
-   * Present the RevenueCat Paywall UI
-   * Uses the paywall configured in RevenueCat dashboard
-   *
-   * Documentation: https://www.revenuecat.com/docs/tools/paywalls
-   */
-  async presentPaywall(): Promise<PaywallResult> {
-    try {
-      await this.initialize();
-
-      if (!this.isInitialized) {
-        return { result: PAYWALL_RESULT.ERROR };
-      }
-
-      const result = await RevenueCatUI.presentPaywall();
-
-      // Get updated customer info after paywall interaction
-      const customerInfo = await this.getCustomerInfo();
-
-      return {
-        result,
-        customerInfo: customerInfo || undefined,
-      };
-    } catch (error) {
-      console.error('Failed to present paywall:', error);
-      return { result: PAYWALL_RESULT.ERROR };
-    }
-  }
-
-  /**
-   * Present paywall if user doesn't have premium entitlement
-   * Returns true if user now has premium access
-   */
-  async presentPaywallIfNeeded(): Promise<boolean> {
-    try {
-      await this.initialize();
-
-      if (!this.isInitialized) {
-        return false;
-      }
-
-      const result = await RevenueCatUI.presentPaywallIfNeeded({
-        requiredEntitlementIdentifier: ENTITLEMENT_ID,
-      });
-
-      if (result === PAYWALL_RESULT.PURCHASED || result === PAYWALL_RESULT.RESTORED) {
-        return true;
-      }
-
-      return false;
-    } catch (error) {
-      console.error('Failed to present paywall:', error);
-      return false;
     }
   }
 
